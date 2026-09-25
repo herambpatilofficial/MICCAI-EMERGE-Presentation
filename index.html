@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Label- & Parameter-Efficient I-JEPA for Edge Lung Ultrasound — Slides</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/white.css" id="theme">
+<style>
+  :root{
+    --ink:#0d1519; --muted:#5b6b77; --accent:#0a9fb0; --accent-d:#066d79;
+    --good:#1c8f63; --warn:#b07d0e; --crit:#c9463b; --paper:#f7f9fa; --hair:#d4dee2;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  .reveal{font-family:var(--sans);color:var(--ink);font-size:30px}
+  .reveal .slides{text-align:left}
+  .reveal h1,.reveal h2,.reveal h3{font-family:var(--sans);color:var(--ink);
+    text-transform:none;letter-spacing:-.01em;font-weight:800;text-wrap:balance}
+  .reveal h1{font-size:1.5em;line-height:1.08}
+  .reveal h2{font-size:1.15em;margin-bottom:.35em}
+  .reveal h3{font-size:.7em;color:var(--accent-d);font-weight:700}
+  .reveal p,.reveal li{line-height:1.4}
+  .reveal em{color:var(--accent-d);font-style:normal;font-weight:600}
+  .reveal strong{color:var(--ink);font-weight:800}
+  .reveal a{color:var(--accent-d)}
+  .reveal section{padding:10px 20px}
+  .eyebrow{font-family:var(--mono);font-size:.5em;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-d);margin:0 0 .4em}
+  .big{font-size:2.0em;font-weight:800;color:var(--accent-d);letter-spacing:-.02em;line-height:1}
+  .sub{color:var(--muted);font-size:.62em}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:.5em}
+  .chip{font-family:var(--mono);font-size:.5em;background:#e2f4f6;color:var(--accent-d);
+    border:1px solid #bfe6ea;border-radius:20px;padding:4px 12px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:center}
+  .card{background:#fff;border:1px solid var(--hair);border-radius:12px;padding:16px 20px}
+  .reveal table{font-size:.62em;width:100%;border-collapse:collapse}
+  .reveal table th,.reveal table td{border:none;border-bottom:1px solid var(--hair);padding:7px 10px}
+  .reveal table th{font-family:var(--mono);font-size:.8em;text-transform:uppercase;color:var(--muted);letter-spacing:.04em}
+  .reveal table td.n,.reveal table th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono)}
+  .reveal tr.hl td{background:#e2f4f6;font-weight:700}
+  .num{color:var(--accent-d);font-weight:800}
+  .neg{color:var(--crit);font-weight:700}
+  .ok{color:var(--good);font-weight:700}
+  .reveal img.fig{max-height:520px;background:#fff;border-radius:8px;border:1px solid var(--hair);display:block;margin:0 auto}
+  .obstacle{display:flex;gap:14px;align-items:baseline;margin:.35em 0}
+  .obstacle .n2{font-family:var(--mono);color:var(--accent-d);font-weight:700}
+  .foot{position:absolute;bottom:12px;left:20px;font-family:var(--mono);font-size:.4em;color:var(--muted)}
+  .reveal .slide-number{background:var(--accent-d)}
+  .callout{background:#fbf1da;border-left:4px solid var(--warn);border-radius:8px;padding:10px 16px;font-size:.72em}
+  .callout.ok{background:#e4f6ee;border-left-color:var(--good)}
+  .callout.bad{background:#f8e5e2;border-left-color:var(--crit)}
+</style></head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- 1 TITLE -->
+<section data-background-color="#0b1a20">
+  <div style="color:#e7eef1">
+  <p class="eyebrow" style="color:#18b6c8">MICCAI 2026 · MSB EMERGE · Oral</p>
+  <h1 style="color:#fff">Label- &amp; Parameter-Efficient Lung Ultrasound Representation Learning via I-JEPA for Edge Diagnostics</h1>
+  <p style="color:#aebfc6;font-size:.7em;margin-top:.6em">Heramb Vivek Patil</p>
+  <div class="chips">
+    <span class="chip" style="background:#0e2b31;color:#5ad3e0;border-color:#0e2b31">0.960 AUROC</span>
+    <span class="chip" style="background:#0e2b31;color:#5ad3e0;border-color:#0e2b31">&lt;1% params</span>
+    <span class="chip" style="background:#0e2b31;color:#5ad3e0;border-color:#0e2b31">34 FPS on a laptop</span>
+    <span class="chip" style="background:#0e2b31;color:#5ad3e0;border-color:#0e2b31">+0.057 @10% labels (p=0.016)</span>
+  </div>
+  </div>
+  <aside class="notes">One-liner: We adapt a frozen ImageNet ViT to lung ultrasound by training under 1% of its parameters with a self-supervised objective. It runs in real time on a laptop, and the key result — it's dramatically more label-efficient. The honest headline: not "most accurate" (at full labels everything ties), but "needs the fewest labels."</aside>
+</section>
+
+<!-- 2 PROBLEM -->
+<section>
+  <p class="eyebrow">The problem</p>
+  <h2>Point-of-care lung ultrasound is ideal — but ML on it is hard</h2>
+  <p class="sub">Cheap, portable, radiation-free bedside imaging. Three obstacles reinforce each other:</p>
+  <div class="obstacle"><span class="n2">1</span><span><strong>Labels are scarce</strong> — every label needs a clinician; public LUS sets are &lt;2k frames.</span></div>
+  <div class="obstacle"><span class="n2">2</span><span><strong>Images are full of shortcuts</strong> — manufacturer UI (logos, rulers, text) + speckle noise. A naïve model learns the <em>source</em>, not the pathology.</span></div>
+  <div class="obstacle"><span class="n2">3</span><span><strong>On-device adaptation must be cheap</strong> — a hospital can't fully fine-tune a 22M-param backbone or ship data to the cloud.</span></div>
+  <aside class="notes">LUS surged during COVID because it's fast, safe, portable. But: labels are expensive, images have shortcuts (UI + speckle), and deployment needs cheap adaptation. Our three answers, one per obstacle: static UI mask, self-supervision on unlabeled frames, LoRA touching under 1% of weights.</aside>
+</section>
+
+<!-- 3 IDEA -->
+<section>
+  <p class="eyebrow">The idea</p>
+  <h2>Freeze the backbone; teach it by predicting <em>features, not pixels</em></h2>
+  <div class="cols">
+    <div>
+      <p>Start from an ImageNet ViT-Small. <strong>Freeze it.</strong> Add tiny LoRA adapters (&lt;1% of weights). Train them with <strong>I-JEPA</strong> self-supervision — no labels.</p>
+      <p class="sub">Then discard the SSL scaffolding, freeze the encoder, and train a one-layer classifier.</p>
+    </div>
+    <div class="card">
+      <p style="font-size:.72em"><span class="neg">✗ Pixel reconstruction (MAE)</span> must reproduce <em>speckle</em> — random noise → wasted capacity.</p>
+      <p style="font-size:.72em;margin:0"><span class="ok">✓ Latent prediction (I-JEPA)</span> predicts abstract structure → ignores speckle, learns pleural lines / consolidations.</p>
+    </div>
+  </div>
+  <aside class="notes">The single most important design choice: predict in latent space, not pixels. Ultrasound is dominated by speckle — granular random noise. A masked autoencoder must reconstruct it, wasting capacity. I-JEPA predicts the representation of hidden regions, so speckle is averaged away and it focuses on real structure. We prove this later: I-JEPA beats MAE at identical budget.</aside>
+</section>
+
+<!-- 4 METHOD -->
+<section>
+  <p class="eyebrow">Method</p>
+  <h2>Parameter-efficient I-JEPA</h2>
+  <img class="fig" src="figs/fig_architecture.png" alt="I-JEPA architecture">
+  <p class="sub" style="margin-top:.4em">Context encoder (LoRA) + EMA stop-gradient target encoder + shallow predictor. <strong>Only LoRA + predictor train; predictor is discarded.</strong></p>
+  <aside class="notes">Three networks on patch tokens. Context encoder — the LoRA-adapted ViT — sees a 20-40% context block. Target encoder — an EMA copy with stop-gradient — sees everything and provides the targets (4 blocks). The predictor maps context to target latents. Loss is L2 in latent space. Stop-gradient + EMA prevent collapse. Only LoRA and the predictor get gradients; the predictor is thrown away after pretraining, so only the tiny LoRA adapter ships.</aside>
+</section>
+
+<!-- 5 SETUP -->
+<section>
+  <p class="eyebrow">Setup &amp; protocol</p>
+  <h2>POCOVID-Net, evaluated the rigorous way</h2>
+  <ul>
+    <li><strong>1,932 frames</strong>, 3 classes (healthy / bacterial pneumonia / COVID-19), ≈161 videos</li>
+    <li><strong>7-fold video-level split</strong> — all frames of a video stay on one side</li>
+    <li><strong>Leakage-free</strong>: headline results re-run SSL <em>per fold with test videos excluded</em></li>
+  </ul>
+  <div class="callout">A naïve <strong>frame-level</strong> split leaks near-duplicate frames → inflates AUROC to a spurious <span class="neg">0.993</span>. We don't do that.</div>
+  <aside class="notes">Standard public benchmark. The evaluation is where papers get sloppy: we split at the video level, and for the headline numbers we even re-pretrain per fold excluding the test videos, so no test video is ever seen. Frame-level splitting would inflate AUROC to 0.993 — a cautionary number. Leading with rigor earns reviewer trust.</aside>
+</section>
+
+<!-- 6 MAIN RESULT -->
+<section>
+  <p class="eyebrow">Main result</p>
+  <h2>Strong, and honestly reported</h2>
+  <div class="cols">
+    <div>
+      <p class="big">0.960<span style="font-size:.4em"> ±.015</span></p>
+      <p class="sub">macro AUROC · 7-fold leakage-free<br>acc 0.851 · sens 0.842 · spec 0.917</p>
+    </div>
+    <div>
+      <table>
+        <thead><tr><th>Class</th><th class="n">Sens.</th><th class="n">Spec.</th></tr></thead>
+        <tbody>
+          <tr><td>COVID-19</td><td class="n neg">0.750</td><td class="n">0.945</td></tr>
+          <tr><td>Bacterial</td><td class="n">0.885</td><td class="n">0.943</td></tr>
+          <tr><td>Healthy</td><td class="n">0.890</td><td class="n">0.863</td></tr>
+        </tbody>
+      </table>
+      <p class="sub">COVID recall (0.750) is the weak spot — flagged, not hidden.</p>
+    </div>
+  </div>
+  <aside class="notes">0.960 macro AUROC. Per class, COVID sensitivity is the weakest at 0.75 — I flag this honestly; an earlier single fold read 0.986 but the 7-fold mean is the truth. Note AUROC is high (good ranking) while recall is 0.75 at the default threshold — a screening operating point can push COVID recall to ~0.90.</aside>
+</section>
+
+<!-- 7 BASELINES -->
+<section>
+  <p class="eyebrow">Baselines — the honest twist</p>
+  <h2>At full labels, everything ties</h2>
+  <table>
+    <thead><tr><th>Method</th><th class="n">AUROC</th><th class="n">Acc</th><th class="n">Trainable</th></tr></thead>
+    <tbody>
+      <tr><td>MAE + LoRA (pixel SSL)</td><td class="n">0.949</td><td class="n">0.827</td><td class="n">0.147M</td></tr>
+      <tr class="hl"><td>I-JEPA + LoRA (ours)</td><td class="n">0.960</td><td class="n">0.851</td><td class="n">0.147M</td></tr>
+      <tr><td>Supervised LoRA (no SSL)</td><td class="n">0.965</td><td class="n">0.876</td><td class="n">0.147M</td></tr>
+      <tr><td>Full fine-tuning</td><td class="n">0.970</td><td class="n">0.900</td><td class="n">21.8M</td></tr>
+    </tbody>
+  </table>
+  <div class="callout">All four are <strong>statistically tied</strong> (Wilcoxon p&gt;0.29). <em>So what does self-supervision actually buy?</em> → next slide.</div>
+  <aside class="notes">Here's the twist that reshaped the paper. With ALL labels, I-JEPA, MAE, supervised LoRA, and full fine-tuning are a statistical tie. Two takeaways: I-JEPA beats MAE (latent > pixel), and all PEFT reaches full-FT accuracy at under 1% params. But if supervised LoRA ties us at full labels, what does self-supervision add? That question is the setup for the payoff slide. Pause here.</aside>
+</section>
+
+<!-- 8 LABEL EFFICIENCY -->
+<section>
+  <p class="eyebrow">The payoff ★</p>
+  <h2>Self-supervision wins when labels are scarce</h2>
+  <div class="cols">
+    <div><img class="fig" src="figs/fig_labeleff.png" alt="Label efficiency" style="max-height:440px"></div>
+    <div>
+      <p><span class="num" style="font-size:1.3em">+0.057</span> AUROC @ <strong>10%</strong> labels</p>
+      <p><span class="num" style="font-size:1.3em">+0.050</span> AUROC @ <strong>25%</strong> labels</p>
+      <p class="callout ok">Wins <strong>7/7 folds</strong> at each · paired Wilcoxon <strong>p = 0.016</strong></p>
+      <p class="sub">Matches full fine-tuning with ~15–25% of the labels. Ties at 50–100%.</p>
+    </div>
+  </div>
+  <aside class="notes">This is the contribution. I-JEPA does its learning on unlabeled frames, so when labels are scarce only the tiny head is starved — supervised methods must learn everything from the few labels. At 10% labels we beat supervised LoRA by +0.057, at 25% by +0.050, winning all 7 folds each, p=0.016. We match full fine-tuning's accuracy with a fifth of the labels. This is the regime hospitals actually live in.</aside>
+</section>
+
+<!-- 9 WHY IT WORKS -->
+<section>
+  <p class="eyebrow">Why it works</p>
+  <h2>Latent beats pixel · capacity isn't the bottleneck</h2>
+  <div class="cols">
+    <div class="card">
+      <h3>Latent &gt; pixel SSL</h3>
+      <p style="font-size:.8em">I-JEPA <span class="num">0.960</span> vs MAE <span>0.949</span> at identical budget → predicting features (not speckle) pays off.</p>
+      <p style="font-size:.8em;margin:0">Wins even with <strong>no trained head</strong>: k-NN 0.958 vs 0.937.</p>
+    </div>
+    <div class="card">
+      <h3>LoRA rank ablation</h3>
+      <table>
+        <thead><tr><th>Rank</th><th class="n">Params</th><th class="n">AUROC</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>2</td><td class="n">0.037M</td><td class="n">0.965</td></tr>
+          <tr><td>8</td><td class="n">0.147M</td><td class="n">0.962</td></tr>
+          <tr><td>32</td><td class="n">0.590M</td><td class="n">0.968</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:.72em;margin:.3em 0 0">Flat across 16× — <strong>rank 2 (37K params) = rank 32.</strong></p>
+    </div>
+  </div>
+  <aside class="notes">Two supporting results. One: I-JEPA beats MAE, and wins even under a k-NN probe with no trained classifier — the embedding geometry itself is better. Two: the LoRA rank ablation is flat across a 16-fold range; rank 2, just 37,000 parameters, matches rank 32. Capacity is not the bottleneck, which means extreme edge efficiency is essentially free.</aside>
+</section>
+
+<!-- 10 EDGE -->
+<section>
+  <p class="eyebrow">Edge readiness</p>
+  <h2>Real-time on a laptop</h2>
+  <div class="chips" style="gap:14px">
+    <div class="card" style="text-align:center"><p class="big" style="font-size:1.5em">34<span style="font-size:.4em"> FPS</span></p><p class="sub">29.5 ms/frame · Apple M4</p></div>
+    <div class="card" style="text-align:center"><p class="big" style="font-size:1.5em">0.037M</p><p class="sub">smallest adapter (0.17%)</p></div>
+    <div class="card" style="text-align:center"><p class="big" style="font-size:1.5em">0.15<span style="font-size:.4em"> MB</span></p><p class="sub">on-device adapter (rank 2)</p></div>
+    <div class="card" style="text-align:center"><p class="big" style="font-size:1.5em">~4.3<span style="font-size:.4em"> GF</span></p><p class="sub">per frame</p></div>
+  </div>
+  <p class="sub" style="margin-top:.6em">Full ViT-S runs at inference; LoRA cuts <em>adaptation &amp; storage</em>, not inference. A hospital could update the model on-device.</p>
+  <aside class="notes">Measured on an Apple M4 GPU: 34 FPS, real-time video. The on-device update touches as little as 37,000 parameters — a 0.15 MB adapter. To be precise: inference still runs the full ViT-S; LoRA reduces the adaptation and storage cost, not the forward pass. The edge story is that a hospital could fine-tune on its own scans locally, no cloud.</aside>
+</section>
+
+<!-- 11 LIMITATIONS -->
+<section>
+  <p class="eyebrow">Honest limitations</p>
+  <h2>What we don't claim</h2>
+  <ul>
+    <li><strong>No test-time corruption robustness</strong> — under synthetic corruption I-JEPA drops <span class="neg">more</span> than baseline (−0.168 vs −0.135). Reported, not hidden.</li>
+    <li><strong>Cross-source gap</strong> — leave-one-source-out AUROC falls <span class="neg">0.96 → 0.75</span> (source/class confounded in POCOVID).</li>
+    <li><strong>Single dataset</strong>; modest COVID-19 recall (0.75).</li>
+  </ul>
+  <div class="callout">External, multi-centre validation is the <strong>primary future work</strong>.</div>
+  <aside class="notes">I report the negatives — this is where credibility is won and the reviewers praised it. Our synthetic-corruption test is negative: we degrade more than the baseline, so we do NOT claim test-time artifact robustness. Cross-source generalization drops to 0.75 — evidence of the source shortcut. Single dataset, modest COVID recall. External multi-centre validation is the clear next step.</aside>
+</section>
+
+<!-- 12 TAKEAWAY -->
+<section data-background-color="#0b1a20">
+  <div style="color:#e7eef1">
+  <p class="eyebrow" style="color:#18b6c8">Takeaway</p>
+  <h2 style="color:#fff;font-size:1.3em">Parameter-efficient self-supervision makes edge lung ultrasound work <em style="color:#5ad3e0">when labels are scarce</em></h2>
+  <ul style="color:#cdd9dd;font-size:.8em">
+    <li>&lt;1% trainable params · real-time on a laptop</li>
+    <li>+0.057 AUROC @10% labels, 7/7 folds, p=0.016</li>
+    <li>Latent SSL &gt; pixel SSL for speckle-heavy ultrasound</li>
+    <li>Rigorous, leakage-free, honestly-scoped</li>
+  </ul>
+  <p style="color:#8fa6ae;font-size:.6em;margin-top:.6em">Code: github.com/heramb-patil/researchmicc · Accepted (Oral), MSB EMERGE 2026 · Thank you</p>
+  </div>
+  <aside class="notes">Wrap-up: the one idea to remember — self-supervision makes edge lung ultrasound label-efficient, and we proved it honestly. Under 1% params, real-time, significant low-label win, rigorous protocol. Thank you — happy to take questions. (Backup slides ready: representation probes, video-level metrics, confusion matrices, hyperparameters, operating point, compute.)</aside>
+</section>
+
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/plugin/notes/notes.js"></script>
+<script>
+  Reveal.initialize({
+    hash:true, slideNumber:'c/t', transition:'fade', width:1280, height:720,
+    margin:0.05, controls:true, progress:true,
+    plugins:[RevealNotes]
+  });
+</script>
+</body></html>
